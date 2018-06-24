@@ -1,0 +1,29 @@
+{
+  "name": "stackdriver-pushgateway",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/namshi/stackdriver-pushgateway.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/namshi/stackdriver-pushgateway/issues"
+  },
+  "homepage": "https://github.com/namshi/stackdriver-pushgateway#readme",
+  "dependencies": {
+    "@google-cloud/monitoring": "^0.5.0",
+    "array-into-object": "^1.0.0",
+    "body-parser": "^1.18.3",
+    "express": "^4.16.3",
+    "express-async-errors": "^3.0.0",
+    "expressjs-utils": "^1.2.1",
+    "newrelic-plus": "^1.1.0"
+  }
+}
