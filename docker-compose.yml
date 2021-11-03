@@ -1,0 +1,13 @@
+web:
+  build: .
+  volumes:
+    - .:/src
+  ports:
+    - "8080:8080"
+  environment:
+    NODE_TLS_REJECT_UNAUTHORIZED: 0
+    VIRTUAL_HOST: push-gateway.namdv.net
+    VIRTUAL_PORT: 8080
+    PROJECT_ID: namshi-staging
+  command: ["/bin/sh", "-ec", "mkdir /credentials/ && cp /src/credentials/credentials.json /credentials/ && node index.js"]
+  # command: ["/bin/sh", "-ec", "while :; do echo '.'; sleep 5 ; done"]
