@@ -54,8 +54,13 @@ const getPingUrl = async (checkName, job = null, team = null) => {
             "unique": ["name"],
             "channels": notificationChannels
         }
+        logger.info(`Debug - create check payload - ${checkName}`, {
+            checkConfig
+        })
         const response = await connection.post('api/v1/checks/', checkConfig);
-
+        logger.info(`Debug - create check response - ${checkName}`, {
+            response
+        })
         const pingUrl = _.get(response, 'data.ping_url', '');
         if (!pingUrl) {
             logger.error(`Failed to create/retrieve the check: ${checkName}`)
