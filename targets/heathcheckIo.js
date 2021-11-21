@@ -31,6 +31,7 @@ const ping = async ({ interval, job, team }) => {
         const pingResponse = await connection.post(pingUrl, `team: ${team}, job: ${job}, interval: ${interval}`);
         logger.info(`Ping Response: ${pingResponse.data} for check: ${checkName} - ${pingUrl}`);
     } catch (err) {
+        delete pingUrlCache[checkName];
         logger.error(`Failed to ping healthcheck ping-api: ${checkName}`, {
             errorMessage: err.message,
             errorStack: err.stack
@@ -40,28 +41,40 @@ const ping = async ({ interval, job, team }) => {
 
 let pingUrlCache = {};
 const getPingUrl = async (checkName, job = null, team = null) => {
-    if(pingUrlCache[checkName]){
-        return pingUrlCache[checkName];
-    }
-    const connection = createConnection(_.get(config, 'healthcheckio.checksApiConfig', {}))
-    let notificationChannels = _.get(config, `healthcheckio.alertConfig.notificationsChannel.${team ? team: 'default'}`);
-    const checkConfig = {
-        "name": checkName,
-        "timeout": _.get(config, `healthcheckio.alertConfig.thresholds.${job}.timeOut`) || _.get(config, `healthcheckio.alertConfig.thresholds.default.timeOut`),
-        "grace": _.get(config, `healthcheckio.alertConfig.thresholds.${job}.grace`) || _.get(config, `healthcheckio.alertConfig.thresholds.default.grace`),
-        "unique": ["name"],
-        "channels": notificationChannels
-    }
-    const response = await connection.post('api/v1/checks/', checkConfig);
-    const pingUrl = _.get(response, 'data.ping_url', '');
-    if (!pingUrl) {
-        logger.error(`Failed to create/retrieve the check: ${checkName}`)
-        throw new Error(`Failed to create/retrieve healthcheck for ${checkName}`)
-    }
+    try {
+        if (pingUrlCache[checkName]) {
+            return pingUrlCache[checkName];
+        }
+        const connection = createConnection(_.get(config, 'healthcheckio.checksApiConfig', {}))
+        let notificationChannels = _.get(config, `healthcheckio.alertConfig.notificationsChannel.${team ? team : 'default'}`);
+        const checkConfig = {
+            "name": checkName,
+            "timeout": _.get(config, `healthcheckio.alertConfig.thresholds.${job}.timeOut`) || _.get(config, `healthcheckio.alertConfig.thresholds.default.timeOut`),
+            "grace": _.get(config, `healthcheckio.alertConfig.thresholds.${job}.grace`) || _.get(config, `healthcheckio.alertConfig.thresholds.default.grace`),
+            "unique": ["name"],
+            "channels": notificationChannels
+        }
+        const response = await connection.post('api/v1/checks/', checkConfig);
 
-    //Cache the result
-    pingUrlCache[checkName] = pingUrl;
-    return pingUrl;
+        const pingUrl = _.get(response, 'data.ping_url', '');
+        if (!pingUrl) {
+            logger.error(`Failed to create/retrieve the check: ${checkName}`)
+            throw new Error(`Failed to create/retrieve healthcheck for ${checkName}`)
+        }
+
+        //Cache the result
+        pingUrlCache[checkName] = pingUrl;
+        return pingUrl;
+    } catch (err) {
+        logger.error(`Failed to create/get ping-api: ${checkName}-${job}`, {
+            checkName, job, team: team ? team : '',
+            errorMessage: err.message,
+            errorStack: err.stack,
+            error:err
+        });
+
+        throw err;
+    }
 }
 
 
