@@ -7,6 +7,8 @@ const monitoring = require('@google-cloud/monitoring');
 const a2o = require('array-into-object');
 const client = new monitoring.MetricServiceClient();
 const app = express();
+const healthcheckioClient = require('./targets/heathcheckIo');
+const logger = require('lib-logger');
 
 
 const config = {
@@ -14,10 +16,16 @@ const config = {
   httpPort: process.env.HTTP_PORT || 8080,
 };
 
-app.post('/metrics*', bodyParser.raw({type: "*/*"}), async (req, res) => {
+app.post('/metrics*', bodyParser.raw({ type: "*/*" }), async (req, res) => {
   let labels = a2o(req.params[0].split('/').filter(Boolean))
   let metrics = a2o(req.body.toString().split("\n").join(" ").split(" ").filter(Boolean))
   let writes = []
+
+  if (metrics && metrics['last_run'] && labels && labels['interval'] == 'daily') {
+
+    //Push to healthcheck.io
+    healthcheckioClient.ping(labels);
+  }
 
   for (let metric in metrics) {
     let dataPoint = {
@@ -50,12 +58,17 @@ app.post('/metrics*', bodyParser.raw({type: "*/*"}), async (req, res) => {
       timeSeries: [timeSeriesData],
     };
 
-    writes.push(client.createTimeSeries(request).then(_ => console.log(`Pushed ${metric} ${metrics[metric]} ${JSON.stringify(labels)} -- you rockin' baby!`)))
+    writes.push(client.createTimeSeries(request).then(_ => logger.info(`Pushed ${metric} ${metrics[metric]} ${JSON.stringify(labels)} -- you rockin' baby!`, { metric, labels })))
   }
 
-  Promise.all(writes).catch(console.error)
+  Promise.all(writes).catch(err => {
+    logger.error(err.message, {
+      errorMessage: err.message,
+      errorStack: err.stack
+    })
+  })
 
-  res.json({labels, metrics})
+  res.json({ labels, metrics })
 })
 
 
@@ -64,4 +77,5 @@ expressUtils.errorHandler(app);
 
 app.listen(config.httpPort, () => {
   console.log("StackDriver gateway since 2018...");
+  console.log("healthcheck gateway since 2021...");
 });

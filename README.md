@@ -9,6 +9,19 @@ echo "some_metric 3.14" | curl --data-binary @- http://stackgateway.domain.com/m
 
 > only pushing metrics is really compatible to prometheus (not deleting etc)
 
+# healthcheckio-integration
+
+We faced some issues triggerring alerts when stackdriver time series metrics is absent for morethan 24 hours and added support for healthchecks.io api.
+Currently we are adding healthchecks.io only for last_run metrics when interval is daily, which can be extended later if needed
+
+you can customize alerting thresholds for a particular job by adding an entry in the config.js file under node `healthcheckio.alertConfig.thresholds` (replaces <job_name> with name of the job in the push url)
+```
+"<job_name>": {
+    "timeOut": 300, // 5 minutes - minimum 60 (one minute), maximum: 2592000 (30 days).
+    "grace": 60 // 1 minutes - Minimum: 60 (one minute), maximum: 2592000 (30 days)
+}
+```
+
 ## Installation
 
 We provide a bare Dockerfile to run the pushgateway, but it essentially simply does
